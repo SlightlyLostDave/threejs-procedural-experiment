@@ -1,0 +1,17 @@
+{
+  "name": "threejs-procedural-experiment",
+  "version": "0.0.1",
+  "main": "index.html",
+  "repository": "https://github.com/SlightlyLostDave/threejs-procedural-experiment.git",
+  "author": "Dave Beach <dave@slightlylost.com>",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "three": "^0.151.3",
+    "three-stdlib": "^2.21.8",
+    "vite": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.150.1"
+  }
+}
