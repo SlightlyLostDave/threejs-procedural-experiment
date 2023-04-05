@@ -17,6 +17,9 @@ import {
     MeshPhysicalMaterial,
     PCFSoftShadowMap,
     PointLight,
+    DoubleSide,
+    SphereGeometry,
+    BufferGeometry,
 } from 'three';
 import { mergeBufferGeometries } from 'three-stdlib/utils/BufferGeometryUtils';
 import { OrbitControls } from 'three-stdlib/controls/OrbitControls';
@@ -113,6 +116,54 @@ let grassGeo = new BoxGeometry(0, 0, 0);
 
     scene.add(stoneMesh, dirtMesh, dirt2Mesh, sandMesh, grassMesh);
 
+    let seaMesh = new Mesh(
+        new CylinderGeometry(17, 17, MAX_HEIGHT * 0.2, 50),
+        new MeshPhysicalMaterial({
+            envMap,
+            color: new Color('#55aaff').convertSRGBToLinear().multiplyScalar(3),
+            ior: 1.4,
+            transmission: 1,
+            transparent: true,
+            thickness: 1.5,
+            envMapIntensity: 0.2,
+            roughness: 1,
+            metalness: 0.025,
+            roughnessMap: textures.water,
+            metalnessMap: textures.water,
+        })
+    );
+    seaMesh.receiveShadow = true;
+    seaMesh.position.set(0, MAX_HEIGHT * 0.1, 0);
+    scene.add(seaMesh);
+
+    let mapContainer = new Mesh(
+        new CylinderGeometry(17.1, 17.1, MAX_HEIGHT * 0.25, 50, 1, true),
+        new MeshPhysicalMaterial({
+            envMap,
+            map: textures.dirt,
+            envMapIntensity: 0.2,
+            side: DoubleSide,
+        })
+    );
+    mapContainer.receiveShadow = true;
+    mapContainer.position.set(0, MAX_HEIGHT * 0.125, 0);
+    scene.add(mapContainer);
+
+    let mapFloor = new Mesh(
+        new CylinderGeometry(18.5, 18.5, MAX_HEIGHT * 0.1, 50),
+        new MeshPhysicalMaterial({
+            envMap,
+            map: textures.dirt2,
+            envMapIntensity: 0.1,
+            side: DoubleSide,
+        })
+    );
+    mapFloor.receiveShadow = true;
+    mapFloor.position.set(0, -MAX_HEIGHT * 0.05, 0);
+    scene.add(mapFloor);
+
+    clouds();
+
     renderer.setAnimationLoop(() => {
         controls.update();
         renderer.render(scene, camera);
@@ -134,15 +185,36 @@ function makeHex(height: number, position): void {
     let geo = hexGeometry(height, position);
 
     if (height > STONE_HEIGHT) {
-        stoneGeo = mergeBufferGeometries([geo, stoneGeo]) as any;
+        stoneGeo = mergeBufferGeometries([geo, stoneGeo]) as BoxGeometry;
+
+        if (Math.random() > 0.8) {
+            stoneGeo = mergeBufferGeometries([
+                stoneGeo,
+                stone(height, position),
+            ]) as BoxGeometry;
+        }
     } else if (height > DIRT_HEIGHT) {
-        dirtGeo = mergeBufferGeometries([geo, dirtGeo]) as any;
+        dirtGeo = mergeBufferGeometries([geo, dirtGeo]) as BoxGeometry;
     } else if (height > GRASS_HEIGHT) {
-        grassGeo = mergeBufferGeometries([geo, grassGeo]) as any;
+        grassGeo = mergeBufferGeometries([geo, grassGeo]) as BoxGeometry;
+
+        if (Math.random() > 0.8) {
+            grassGeo = mergeBufferGeometries([
+                grassGeo,
+                tree(height, position),
+            ]) as BoxGeometry;
+        }
     } else if (height > SAND_HEIGHT) {
-        sandGeo = mergeBufferGeometries([geo, sandGeo]) as any;
+        sandGeo = mergeBufferGeometries([geo, sandGeo]) as BoxGeometry;
+
+        if (Math.random() > 0.8 && stoneGeo) {
+            stoneGeo = mergeBufferGeometries([
+                stoneGeo,
+                stone(height, position),
+            ]) as BoxGeometry;
+        }
     } else if (height > DIRT2_HEIGHT) {
-        dirt2Geo = mergeBufferGeometries([geo, dirt2Geo]) as any;
+        dirt2Geo = mergeBufferGeometries([geo, dirt2Geo]) as BoxGeometry;
     }
 }
 
@@ -159,4 +231,68 @@ function hexMesh(geo, map): Mesh {
     mesh.receiveShadow = true;
 
     return mesh;
+}
+
+function stone(height, position): SphereGeometry {
+    const px = Math.random() * 0.4;
+    const pz = Math.random() * 0.4;
+
+    const geo = new SphereGeometry(Math.random() * 0.3 + 0.1, 7, 7);
+    geo.translate(position.x + px, height, position.y + pz);
+
+    return geo;
+}
+
+function tree(height, position) {
+    const treeHeight = Math.random() * 1 + 1.25;
+
+    const geo = new CylinderGeometry(0, 1.5, treeHeight, 3);
+    geo.translate(position.x, height + treeHeight * 0 + 1, position.y);
+
+    const geo2 = new CylinderGeometry(0, 1.15, treeHeight, 3);
+    geo2.translate(position.x, height + treeHeight * 0.6 + 1, position.y);
+
+    const geo3 = new CylinderGeometry(0, 0.8, treeHeight, 3);
+    geo3.translate(position.x, height + treeHeight * 1.25 + 1, position.y);
+
+    return mergeBufferGeometries([geo, geo2, geo3]) as BufferGeometry;
+}
+
+function clouds() {
+    let geo: SphereGeometry | BufferGeometry = new SphereGeometry(0, 0, 0);
+    let count = Math.floor(Math.pow(Math.random(), 0.45) * 4);
+
+    for (let i = 0; i < count; i++) {
+        const puff1 = new SphereGeometry(1.2, 7, 7);
+        const puff2 = new SphereGeometry(1.5, 7, 7);
+        const puff3 = new SphereGeometry(0.9, 7, 7);
+
+        puff1.translate(-1.85, Math.random() * 0.3, 0);
+        puff2.translate(0, Math.random() * 0.3, 0);
+        puff3.translate(1.85, Math.random() * 0.3, 0);
+
+        const cloudGeo = mergeBufferGeometries([
+            puff1,
+            puff2,
+            puff3,
+        ]) as BufferGeometry;
+        cloudGeo.translate(
+            Math.random() * 20 - 10,
+            Math.random() * 7 + 7,
+            Math.random() * 20 - 10
+        );
+        cloudGeo.rotateY(Math.random() * Math.PI * 2);
+
+        const mesh = new Mesh(
+            geo,
+            new MeshStandardMaterial({
+                envMap,
+                envMapIntensity: 0.75,
+                flatShading: true,
+            })
+        );
+        scene.add(mesh);
+
+        geo = mergeBufferGeometries([geo, cloudGeo]) as BufferGeometry;
+    }
 }
