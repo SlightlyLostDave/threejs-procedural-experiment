@@ -7,6 +7,7 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
+    "simplex-noise": "^4.0.1",
     "three": "^0.151.3",
     "three-stdlib": "^2.21.8",
     "vite": "^4.2.1"
